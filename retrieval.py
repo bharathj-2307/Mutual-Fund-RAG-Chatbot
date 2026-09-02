@@ -67,7 +67,7 @@ def detect_scheme(question: str) -> str | None:
     return None
 
 
-def retrieve_chunks(question: str, top_k: int = 4, chroma_path: str = CHROMA_PATH) -> list[Document]:
+def retrieve_chunks(question: str, top_k: int = 6, chroma_path: str = CHROMA_PATH) -> list[Document]:
     scheme = detect_scheme(question)
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
     vectorstore = Chroma(
@@ -139,8 +139,28 @@ def _call_mistral(prompt_text: str, retries: int = MAX_RETRIES) -> str | None:
     return None
 
 
-def retrieve_and_answer(question: str, top_k: int = 4) -> str | None:
-    chunks = retrieve_chunks(question, top_k=top_k)
+def retrieve_and_answer(question: str, top_k: int = 6) -> str | None:
+    """Full pipeline: retrieve chunks → format prompt → call Mistral → return answer."""
+    # Expand query to improve retrieval for common question types
+    lower_q = question.lower()
+    expanded_question = question
+
+    if "expense ratio" in lower_q or "ter" in lower_q or "expense" in lower_q:
+        expanded_question = question + " TER total expense ratio recurring expenses percentage NAV"
+    elif "exit load" in lower_q:
+        expanded_question = question + " exit load redemption charges load structure"
+    elif "minimum sip" in lower_q or "minimum investment" in lower_q:
+        expanded_question = question + " minimum SIP amount application investment"
+    elif "benchmark" in lower_q:
+        expanded_question = question + " benchmark index NSE BSE NIFTY"
+    elif "lock-in" in lower_q or "lock in" in lower_q:
+        expanded_question = question + " lock-in period years ELSS tax saver mandatory holding"
+    elif "riskometer" in lower_q or "risk" in lower_q:
+        expanded_question = question + " riskometer risk level very high moderately high"
+    elif "statement" in lower_q or "capital gains" in lower_q:
+        expanded_question = question + " capital gains statement download tax document CAMS KFintech"
+
+    chunks = retrieve_chunks(expanded_question, top_k=top_k)
     if not chunks:
         chunks = retrieve_chunks(question, top_k=top_k, chroma_path=CHROMA_PATH)
         if not chunks:
@@ -158,7 +178,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         user_q = " ".join(sys.argv[1:])
     else:
-        user_q = "What is the exit load for HDFC Large Cap Fund?"
+        user_q = "What is the expense ratio of HDFC Large Cap Fund?"
 
     print(f"Question: {user_q}\n")
     print("Retrieving and generating answer via Mistral AI...")
