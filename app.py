@@ -71,17 +71,26 @@ st.markdown(
         border: none !important;
     }
     .stTextInput input {
-        background-color: #FAFAFA !important;
-        border-radius: 10px !important;
-        font-size: 15px !important;
-        padding: 12px 16px !important;
-        color: #1A1A1A !important;
-        border: 1.5px solid #E0E0E0 !important;
-    }
-    div[data-baseweb="input"]:focus-within {
-        border-color: #00B386 !important;
-        box-shadow: 0 0 0 3px rgba(0,179,134,0.15) !important;
-    }
+    background-color: #FAFAFA !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    padding: 12px 16px !important;
+    color: #1A1A1A !important;
+    border: 1.5px solid #E0E0E0 !important;
+    box-shadow: none !important;
+}
+.stTextInput > div {
+    border: none !important;
+    box-shadow: none !important;
+}
+div[data-baseweb="input"] {
+    border-color: #E0E0E0 !important;
+    box-shadow: none !important;
+}
+div[data-baseweb="input"]:focus-within {
+    border-color: #00B386 !important;
+    box-shadow: 0 0 0 2px rgba(0,179,134,0.15) !important;
+}
     button:focus { outline: none !important; box-shadow: none !important; }
     .stSpinner p { color: #00B386 !important; font-size: 14px !important; }
     div[data-testid="stAlertContainer"] { border-radius: 10px !important; }
