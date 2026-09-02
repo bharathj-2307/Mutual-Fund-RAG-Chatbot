@@ -110,10 +110,7 @@ def format_prompt(question: str, chunks: list[Document]) -> str:
 
 def _call_mistral(prompt_text: str, retries: int = MAX_RETRIES) -> str | None:
     """Call Mistral API with retry/rate-limit handling."""
-    try:
-        from mistralai import Mistral
-    except ImportError:
-        from mistralai.client import MistralClient as Mistral
+    from mistralai import Mistral
 
     client = Mistral(api_key=os.environ.get("MISTRAL_API_KEY"))
     messages = [{"role": "user", "content": prompt_text}]
