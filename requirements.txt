@@ -11,4 +11,4 @@ ruff
 mypy
 streamlit
 python-dotenv
-mistralai
+mistralai>=1.0.0
