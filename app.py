@@ -42,7 +42,6 @@ st.markdown(
         margin-top: 0 !important;
         margin-bottom: 12px !important;
     }
-    /* Hide the anchor link icon that appears next to headings */
     h3 a, h2 a, h1 a {
         display: none !important;
     }
@@ -53,7 +52,7 @@ st.markdown(
         border: none !important;
         font-weight: 600 !important;
         font-size: 11px !important;
-        padding: 10px 10px !important;
+        padding: 10px 6px !important;
         width: 100% !important;
         white-space: normal !important;
         line-height: 1.4 !important;
@@ -61,36 +60,48 @@ st.markdown(
         min-height: 80px !important;
         text-align: center !important;
         transition: background-color 0.15s ease !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
     }
     .stButton > button:hover,
     .stButton > button:focus,
     .stButton > button:active {
         background-color: #009E78 !important;
         color: #FFFFFF !important;
-        box-shadow: 0 2px 8px rgba(0,179,134,0.25) !important;
+        box-shadow: none !important;
         border: none !important;
     }
-    .stTextInput input {
-    background-color: #FAFAFA !important;
-    border-radius: 10px !important;
-    font-size: 15px !important;
-    padding: 12px 16px !important;
-    color: #1A1A1A !important;
-    border: 1.5px solid #E0E0E0 !important;
-    box-shadow: none !important;
-}
-.stTextInput > div {
-    border: none !important;
-    box-shadow: none !important;
-}
-div[data-baseweb="input"] {
-    border-color: #E0E0E0 !important;
-    box-shadow: none !important;
-}
-div[data-baseweb="input"]:focus-within {
-    border-color: #00B386 !important;
-    box-shadow: 0 0 0 2px rgba(0,179,134,0.15) !important;
-}
+    .stTextInput input,
+    .stTextInput input:focus,
+    .stTextInput input:active {
+        background-color: #FAFAFA !important;
+        border-radius: 10px !important;
+        font-size: 15px !important;
+        padding: 12px 16px !important;
+        color: #1A1A1A !important;
+        border: 1.5px solid #E0E0E0 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    .stTextInput > div,
+    .stTextInput > div > div,
+    .stTextInput > div > div > div {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    div[data-baseweb="input"],
+    div[data-baseweb="input"] > div {
+        border: 1.5px solid #E0E0E0 !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+        background-color: #FAFAFA !important;
+    }
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="input"]:focus-within > div {
+        border-color: #00B386 !important;
+        box-shadow: 0 0 0 2px rgba(0,179,134,0.15) !important;
+    }
     button:focus { outline: none !important; box-shadow: none !important; }
     .stSpinner p { color: #00B386 !important; font-size: 14px !important; }
     div[data-testid="stAlertContainer"] { border-radius: 10px !important; }
@@ -155,12 +166,6 @@ def _safe_call(user_question: str, retries: int = 3, delay: int = 6):
 
 
 def _parse_answer(raw: str) -> dict:
-    """
-    Parse the raw answer string into three parts:
-    - answer_text: the main factual answer
-    - source_url and source_label: the citation link
-    - last_updated: the date line
-    """
     lines = [l.strip() for l in raw.strip().splitlines() if l.strip()]
     answer_lines = []
     source_url = ""
@@ -171,17 +176,13 @@ def _parse_answer(raw: str) -> dict:
         if line.lower().startswith("source:"):
             url = line[7:].strip()
             source_url = url
-            # Extract a readable filename from the URL
             raw_name = url.rstrip("/").split("/")[-1]
-            # Decode percent-encoding for display
             try:
                 from urllib.parse import unquote
                 raw_name = unquote(raw_name)
             except Exception:
                 pass
-            # Remove .pdf extension and clean up
             raw_name = raw_name.replace(".pdf", "").replace("%20", " ").replace("_", " ")
-            # Shorten if too long
             source_label = raw_name[:80] + "..." if len(raw_name) > 80 else raw_name
         elif line.lower().startswith("last updated"):
             last_updated = line
@@ -228,22 +229,13 @@ def _render_answer(raw: str):
     st.markdown(
         '<div style="background:#FFFFFF; border:1.5px solid #E8E8E8; border-radius:14px; '
         'padding:24px 28px; margin-top:20px; box-shadow:0 2px 16px rgba(0,0,0,0.06);">'
-
-        # Answer label
         '<div style="display:flex; align-items:center; margin-bottom:14px;">'
         '<div style="width:8px; height:8px; background:#00B386; border-radius:50%; margin-right:10px;"></div>'
         '<span style="color:#00916E; font-size:11px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;">Answer</span>'
         '</div>'
-
-        # Answer text
         f'<div style="color:#1A1A1A; font-size:16px; line-height:1.8; font-weight:400;">{answer_text}</div>'
-
-        # Source
         + source_block
-
-        # Last updated
         + updated_block
-
         + '</div>',
         unsafe_allow_html=True,
     )
