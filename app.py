@@ -51,14 +51,14 @@ st.markdown(
         border-radius: 10px !important;
         border: none !important;
         font-weight: 600 !important;
-        font-size: 11px !important;
-        padding: 10px 6px !important;
+        font-size: 14px !important;
+        padding: 12px 16px !important;
         width: 100% !important;
         white-space: normal !important;
-        line-height: 1.4 !important;
+        line-height: 1.5 !important;
         height: auto !important;
-        min-height: 80px !important;
-        text-align: center !important;
+        min-height: 44px !important;
+        text-align: left !important;
         transition: background-color 0.15s ease !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
@@ -200,6 +200,10 @@ def _parse_answer(raw: str) -> dict:
 def _render_answer(raw: str):
     parsed = _parse_answer(raw)
     answer_text = parsed["answer_text"]
+
+    # Convert **bold** markdown to HTML strong tags
+    answer_text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', answer_text)
+
     source_url = parsed["source_url"]
     source_label = parsed["source_label"] or "View source document"
     last_updated = parsed["last_updated"]
@@ -297,12 +301,10 @@ SAMPLE_QUESTIONS = [
     "How do I download my capital gains statement?",
 ]
 
-col1, col2, col3 = st.columns(3)
-for col, q in zip([col1, col2, col3], SAMPLE_QUESTIONS):
-    with col:
-        if st.button(q, key=f"sample_{q[:20]}"):
-            st.session_state["active_question"] = q
-            st.rerun()
+for q in SAMPLE_QUESTIONS:
+    if st.button(q, key=f"sample_{q[:20]}", use_container_width=True):
+        st.session_state["active_question"] = q
+        st.rerun()
 
 # ---------- FOOTER ----------
 st.markdown(
