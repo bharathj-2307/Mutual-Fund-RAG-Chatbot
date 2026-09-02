@@ -11,6 +11,14 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
+# Read API key from Streamlit secrets when deployed on Streamlit Cloud
+try:
+    import streamlit as st
+    if hasattr(st, "secrets") and "MISTRAL_API_KEY" in st.secrets:
+        os.environ["MISTRAL_API_KEY"] = st.secrets["MISTRAL_API_KEY"]
+except Exception:
+    pass
+
 CHROMA_PATH = os.getenv("CHROMA_PATH", "chroma_db")
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 MISTRAL_MODEL = "mistral-small-latest"
