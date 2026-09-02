@@ -52,13 +52,13 @@ st.markdown(
         border-radius: 10px !important;
         border: none !important;
         font-weight: 600 !important;
-        font-size: 13.5px !important;
+        font-size: 12.5px !important;
         padding: 10px 10px !important;
         width: 100% !important;
         white-space: normal !important;
         line-height: 1.4 !important;
         height: auto !important;
-        min-height: 60px !important;
+        min-height: 72px !important;
         text-align: center !important;
         transition: background-color 0.15s ease !important;
     }
