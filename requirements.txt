@@ -1,0 +1,14 @@
+langchain
+langchain-community
+langchain-core
+chromadb
+sentence-transformers
+beautifulsoup4
+requests
+tiktoken
+pytest
+ruff
+mypy
+streamlit
+python-dotenv
+mistralai
