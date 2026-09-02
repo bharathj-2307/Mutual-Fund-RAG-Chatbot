@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
-# Read API key from Streamlit secrets when deployed on Streamlit Cloud
+# Sync Streamlit secrets to environment variables on Streamlit Cloud
 try:
     import streamlit as st
     if hasattr(st, "secrets") and "MISTRAL_API_KEY" in st.secrets:
@@ -40,7 +40,7 @@ RULES:
    "I can only share factual scheme details, not investment advice. For investor education, see https://www.amfiindia.com/investor"
 6. If a question asks to compare fund performance or returns, respond only with:
    "I don't compare fund performance. For official returns data, refer to the factsheet: <relevant factsheet link>"
-7. If a question contains personal information (PAN, Aadhaar, account number, OTP, email, phone number), respond only with:
+7. If a question contains personal information (PAN, account number, OTP, email, phone number), respond only with:
    "I can't process personal or account details. Please contact HDFC AMC directly at 1800 3010 6767."
    Do not repeat or echo the personal information back in your response.
 8. If a question is about a mutual fund scheme outside these three, respond only with:
@@ -84,6 +84,14 @@ def retrieve_chunks(question: str, top_k: int = 4, chroma_path: str = CHROMA_PAT
         k=top_k,
         filter=filter_dict,
     )
+
+    if not chunks and filter_dict:
+        chunks = vectorstore.similarity_search(
+            question,
+            k=top_k,
+            filter=None,
+        )
+
     return chunks
 
 
@@ -109,37 +117,56 @@ def format_prompt(question: str, chunks: list[Document]) -> str:
 
 
 def _call_mistral(prompt_text: str, retries: int = MAX_RETRIES) -> str | None:
-    """Call Mistral API with retry/rate-limit handling."""
-    from mistralai import Mistral
+    """Call Mistral API supporting both modern mistralai (v1.0+) and legacy client interfaces safely."""
+    api_key = os.environ.get("MISTRAL_API_KEY")
+    if not api_key:
+        print("Error: MISTRAL_API_KEY environment variable is missing.", file=sys.stderr)
+        return None
 
-    client = Mistral(api_key=os.environ.get("MISTRAL_API_KEY"))
+    # Handle SDK version differences dynamically
+    try:
+        from mistralai import Mistral
+        client = Mistral(api_key=api_key)
+        use_v1 = True
+    except (ImportError, AttributeError):
+        try:
+            from mistralai.client import MistralClient
+            client = MistralClient(api_key=api_key)
+            use_v1 = False
+        except Exception as err:
+            print(f"Failed to import Mistral SDK: {err}", file=sys.stderr)
+            return None
+
     messages = [{"role": "user", "content": prompt_text}]
 
     for attempt in range(1, retries + 1):
         try:
-            response = client.chat.complete(
-                model=MISTRAL_MODEL,
-                messages=messages,  # type: ignore[arg-type]
-                temperature=TEMPERATURE,
-            )
-            return response.choices[0].message.content or ""  # type: ignore[return-value]
+            if use_v1:
+                response = client.chat.complete(
+                    model=MISTRAL_MODEL,
+                    messages=messages,  # type: ignore[arg-type]
+                    temperature=TEMPERATURE,
+                )
+                return response.choices[0].message.content or ""  # type: ignore[return-value]
+            else:
+                response = client.chat(
+                    model=MISTRAL_MODEL,
+                    messages=messages,  # type: ignore[arg-type]
+                    temperature=TEMPERATURE,
+                )
+                return response.choices[0].message.content or ""  # type: ignore[return-value]
         except Exception as e:  # noqa: BLE001
             err_str = str(e)
-            # Check for rate limit / API errors
             if "rate" in err_str.lower() or "429" in err_str or "context" in err_str.lower():
                 if attempt < retries:
                     delay = BASE_DELAY * attempt
                     time.sleep(delay)
                     continue
                 else:
-                    stderr_msg = (
-                        f"Mistral API failed after {retries} retries. "
-                        f"Error: {err_str}"
-                    )
+                    stderr_msg = f"Mistral API failed after {retries} retries. Error: {err_str}"
                     print(stderr_msg, file=sys.stderr)
                     return None
             else:
-                # Other unexpected error – don't retry indefinitely
                 print(f"Unexpected Mistral error: {e}", file=sys.stderr)
                 return None
 
@@ -150,13 +177,10 @@ def retrieve_and_answer(question: str, top_k: int = 4) -> str | None:
     """Full pipeline: retrieve chunks → format prompt → call Mistral → return answer."""
     chunks = retrieve_chunks(question, top_k=top_k)
     if not chunks:
-        # No scheme detected; try general search
-        chunks = retrieve_chunks(question, top_k=top_k, chroma_path=CHROMA_PATH)
-        if not chunks:
-            return (
-                "I don't have that information in my current sources. "
-                "Please visit https://www.hdfcfund.com for complete scheme details."
-            )
+        return (
+            "I don't have that information in my current sources. "
+            "Please visit https://www.hdfcfund.com for complete scheme details."
+        )
 
     prompt = format_prompt(question, chunks)
     answer = _call_mistral(prompt)
